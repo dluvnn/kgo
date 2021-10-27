@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 )
 
 var (
@@ -15,9 +16,17 @@ var (
 
 // Request ...
 type CURL struct {
-	request  *http.Request
-	response *http.Response
+	Request  *http.Request
+	Response *http.Response
 	Error    error
+}
+
+func (c *CURL) SetURLQuery(value url.Values) *CURL {
+	if c.Error != nil {
+		return c
+	}
+	c.Request.URL.RawQuery = value.Encode()
+	return c
 }
 
 // SetHeader ...
@@ -25,7 +34,7 @@ func (c *CURL) SetHeader(key, value string) *CURL {
 	if c.Error != nil {
 		return c
 	}
-	c.request.Header.Set(key, value)
+	c.Request.Header.Set(key, value)
 	return c
 }
 
@@ -36,7 +45,7 @@ func (c *CURL) SetHeaderList(vstr ...string) *CURL {
 	}
 	n := len(vstr)
 	for i := 0; i < n; i += 2 {
-		c.request.Header.Set(vstr[i], vstr[i+1])
+		c.Request.Header.Set(vstr[i], vstr[i+1])
 	}
 	return c
 }
@@ -46,7 +55,7 @@ func (c *CURL) Send() *CURL {
 	if c.Error != nil {
 		return c
 	}
-	c.response, c.Error = http.DefaultClient.Do(c.request)
+	c.Response, c.Error = http.DefaultClient.Do(c.Request)
 	return c
 }
 
@@ -55,10 +64,10 @@ func (c *CURL) ReadBytes() ([]byte, error) {
 	if c.Error != nil {
 		return nil, c.Error
 	}
-	if c.response == nil {
+	if c.Response == nil {
 		return nil, ErrInvalidResponse
 	}
-	data, err := ioutil.ReadAll(c.response.Body)
+	data, err := ioutil.ReadAll(c.Response.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -67,11 +76,7 @@ func (c *CURL) ReadBytes() ([]byte, error) {
 
 // ReadJSON ...
 func (c *CURL) ReadJSON(x interface{}) error {
-	data, err := c.ReadBytes()
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(data, x)
+	return json.NewDecoder(c.Request.Body).Decode(x)
 }
 
 // New ...
@@ -79,7 +84,7 @@ func New(method, url string, body io.Reader) *CURL {
 	req, err := http.NewRequest(method, url, body)
 
 	return &CURL{
-		request: req,
+		Request: req,
 		Error:   err,
 	}
 }

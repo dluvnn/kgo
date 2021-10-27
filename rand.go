@@ -1,11 +1,15 @@
 package kgo
 
 import (
+	"crypto/md5"
+	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
+	"os"
 )
 
 const (
@@ -56,45 +60,39 @@ func HashPassword(pw, uname string) string {
 	return SHA256(pw + "a7}6r!pjt@+(B]7" + uname)
 }
 
-// // Encrypt ...
-// func Encrypt(key, value []byte) ([]byte, error) {
-// 	block, err := aes.NewCipher(key)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	gcm, err := cipher.NewGCM(block)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	nonce := make([]byte, gcm.NonceSize())
-// 	_, err = rand.Read(nonce)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return gcm.Seal(nonce, nonce, value, nil), nil
-// }
-
-// // Decrypt ...
-// func Decrypt(key, value []byte) ([]byte, error) {
-// 	c, err := aes.NewCipher(key)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	gcm, err := cipher.NewGCM(c)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	nonceSize := gcm.NonceSize()
-// 	if len(value) < nonceSize {
-// 		return nil, ErrTooSmallSize
-// 	}
-// 	nonce, value := value[:nonceSize], value[nonceSize:]
-// 	return gcm.Open(nil, nonce, value, nil)
-// }
-
 // RandInt ...
 func RandInt(min, max int) int {
 	return rand.Intn(max-min) + min
+}
+
+// ComputeMD5Checksum computes the MD5 checksum of the file 'filename'
+func ComputeMD5Checksum(filename string) (string, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	h := md5.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}
+
+// ComputeSHA1Checksum computes the SHA1 checksum of the file 'filename'
+func ComputeSHA1Checksum(filename string) (string, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	h := sha1.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
