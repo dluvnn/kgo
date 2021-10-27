@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"math/rand"
 	"os"
@@ -65,6 +66,18 @@ func RandInt(min, max int) int {
 	return rand.Intn(max-min) + min
 }
 
+func ComputeChecksum(h hash.Hash, f io.Reader) (string, error) {
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}
+
+func MD5ChecksumStream(f io.Reader) (string, error) {
+	return ComputeChecksum(md5.New(), f)
+}
+
 // ComputeMD5Checksum computes the MD5 checksum of the file 'filename'
 func ComputeMD5Checksum(filename string) (string, error) {
 	f, err := os.Open(filename)
@@ -72,13 +85,11 @@ func ComputeMD5Checksum(filename string) (string, error) {
 		return "", err
 	}
 	defer f.Close()
+	return MD5ChecksumStream(f)
+}
 
-	h := md5.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
+func SHA1ChecksumStream(f io.Reader) (string, error) {
+	return ComputeChecksum(sha1.New(), f)
 }
 
 // ComputeSHA1Checksum computes the SHA1 checksum of the file 'filename'
@@ -89,10 +100,5 @@ func ComputeSHA1Checksum(filename string) (string, error) {
 	}
 	defer f.Close()
 
-	h := sha1.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
+	return SHA1ChecksumStream(f)
 }
