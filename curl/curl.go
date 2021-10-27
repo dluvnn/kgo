@@ -76,7 +76,7 @@ func (c *CURL) ReadBytes() ([]byte, error) {
 
 // ReadJSON ...
 func (c *CURL) ReadJSON(x interface{}) error {
-	return json.NewDecoder(c.Request.Body).Decode(x)
+	return json.NewDecoder(c.Response.Body).Decode(x)
 }
 
 // New ...
